@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { int, sqliteTable, text } from "drizzle-orm/sqlite-core";
+import { int, real, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 // The schema is the ground truth for the database. To change it: edit here,
 // run `pnpm db:generate` to turn the diff into a migration under drizzle/,
@@ -16,3 +16,23 @@ export const messages = sqliteTable("messages", {
 });
 
 export type Message = typeof messages.$inferSelect;
+
+export const courses = sqliteTable("courses", {
+  id: int().primaryKey({ autoIncrement: true }),
+  code: text().notNull(),
+  name: text().notNull(),
+});
+
+export type Course = typeof courses.$inferSelect;
+
+export const assessments = sqliteTable("assessments", {
+  id: int().primaryKey({ autoIncrement: true }),
+  courseId: int("course_id")
+    .notNull()
+    .references(() => courses.id),
+  title: text().notNull(),
+  dueDate: text("due_date").notNull(),
+  weight: real().notNull(),
+});
+
+export type Assessment = typeof assessments.$inferSelect;
