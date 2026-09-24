@@ -38,6 +38,18 @@ main {
   margin: 0 auto;
 }
 
+@media (min-width: 900px) {
+  main {
+    max-width: 64rem;
+  }
+}
+
+@media (min-width: 1440px) {
+  main {
+    max-width: 90rem;
+  }
+}
+
 nav {
   display: flex;
   gap: 1.25rem;
@@ -75,13 +87,35 @@ h2 {
   max-width: 32rem;
 }
 
+.planner-layout {
+  display: grid;
+  gap: 2.5rem;
+}
+
+@media (min-width: 900px) {
+  .planner-layout {
+    /* Roughly 65/35 between the two columns, at any container width. */
+    grid-template-columns: minmax(0, 13fr) minmax(0, 7fr);
+    align-items: start;
+  }
+
+  /* Visual order only — the form stays first in the document/tab order,
+     it's just placed to the right of the assessment list on wide screens. */
+  .add-panel {
+    order: 2;
+  }
+
+  .upcoming-panel {
+    order: 1;
+  }
+}
+
 .panel {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
   padding: 1.5rem;
-  margin-bottom: 2.5rem;
 }
 
 .assessment-form {
@@ -288,12 +322,13 @@ select:focus-visible {
 }
 
 .assessment-card {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   justify-content: space-between;
   gap: 0.75rem 1.5rem;
-  padding: 1rem 1.1rem;
+  padding: 1rem 2.25rem 1rem 1.1rem;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -340,37 +375,40 @@ select:focus-visible {
   white-space: nowrap;
 }
 
-.assessment-card__side {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
-
+/* Positioned out of the flex flow so it reads as a secondary card action
+   (top-right corner) rather than a third column of assessment data next
+   to Due/Weight. */
 .assessment-card__delete {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
   margin: 0;
-  padding-left: 0.75rem;
-  border-left: 1px solid var(--border);
 }
 
 .assessment-card__delete-btn {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
   border: none;
   background: transparent;
   color: var(--text-muted);
-  padding: 0.35rem;
+  padding: 0;
   border-radius: 6px;
   line-height: 0;
   cursor: pointer;
+  opacity: 0.6;
 }
 
 .assessment-card__delete-btn:hover {
+  opacity: 1;
   color: var(--text);
   background: var(--bg);
 }
 
 .assessment-card__delete-btn:focus-visible {
+  opacity: 1;
   outline: 2px solid var(--accent);
   outline-offset: 1px;
 }
