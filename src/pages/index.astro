@@ -20,63 +20,73 @@ const assessments = listAssessments();
     </nav>
     <main>
       <h1>Assessment planner</h1>
-      <p>
-        One place to keep track of the assessments spread across your ANU
-        course pages. Add one below; it's saved to SQLite and stays there
-        across a reload.
+      <p class="lede">
+        Keep every assessment from your ANU courses in one place, sorted by
+        what's due next.
       </p>
 
-      <h2>Add an assessment</h2>
-      <form method="post" action="/api/assessments">
-        <label for="course">Course</label>
-        <select id="course" name="courseId" required>
-          {courses.map((course) => (
-            <option value={course.id}>
-              {course.code} — {course.name}
-            </option>
-          ))}
-        </select>
-
-        <label for="title">Title</label>
-        <input id="title" name="title" required maxlength="200" />
-
-        <label for="dueDate">Due date</label>
-        <input id="dueDate" name="dueDate" type="date" required />
-
-        <label for="weight">Weight (%)</label>
-        <input id="weight" name="weight" type="number" min="0" max="100" step="0.1" required />
-
-        <button>Add assessment</button>
-      </form>
-
-      <h2>Upcoming assessments</h2>
-      {
-        assessments.length === 0 ? (
-          <p>No assessments yet.</p>
-        ) : (
-          <table>
-            <caption>Ordered by due date</caption>
-            <thead>
-              <tr>
-                <th scope="col">Course</th>
-                <th scope="col">Assessment</th>
-                <th scope="col">Due date</th>
-                <th scope="col">Weight</th>
-              </tr>
-            </thead>
-            <tbody>
-              {assessments.map((assessment) => (
-                <tr>
-                  <td>{assessment.courseCode}</td>
-                  <td>{assessment.title}</td>
-                  <td>{assessment.dueDate}</td>
-                  <td>{assessment.weight}%</td>
-                </tr>
+      <section class="panel" aria-labelledby="add-heading">
+        <h2 id="add-heading">Add an assessment</h2>
+        <form class="assessment-form" method="post" action="/api/assessments">
+          <div class="field field--course">
+            <label for="course">Course</label>
+            <select id="course" name="courseId" required>
+              {courses.map((course) => (
+                <option value={course.id}>
+                  {course.code} — {course.name}
+                </option>
               ))}
-            </tbody>
-          </table>
-        )
-      }
+            </select>
+          </div>
+
+          <div class="field field--title">
+            <label for="title">Title</label>
+            <input id="title" name="title" required maxlength="200" placeholder="e.g. Assignment 2" />
+          </div>
+
+          <div class="field">
+            <label for="dueDate">Due date</label>
+            <input id="dueDate" name="dueDate" type="date" required />
+          </div>
+
+          <div class="field">
+            <label for="weight">Weight (%)</label>
+            <input id="weight" name="weight" type="number" min="0" max="100" step="0.1" required />
+          </div>
+
+          <button type="submit" class="assessment-form__submit">Add assessment</button>
+        </form>
+      </section>
+
+      <section aria-labelledby="upcoming-heading">
+        <h2 id="upcoming-heading">Upcoming assessments</h2>
+        {
+          assessments.length === 0 ? (
+            <p class="empty-state">Nothing here yet — add your first assessment above.</p>
+          ) : (
+            <ul class="assessment-list">
+              {assessments.map((assessment) => (
+                <li class="assessment-card">
+                  <div class="assessment-card__main">
+                    <p class="assessment-card__course">{assessment.courseCode}</p>
+                    <h3 class="assessment-card__title">{assessment.title}</h3>
+                  </div>
+                  <dl class="assessment-card__meta">
+                    <div>
+                      <dt>Due</dt>
+                      <dd><time datetime={assessment.dueDate}>{assessment.dueDate}</time></dd>
+                    </div>
+                    <div>
+                      <dt>Weight</dt>
+                      <dd>{assessment.weight}%</dd>
+                    </div>
+                  </dl>
+                </li>
+              ))}
+            </ul>
+          )
+        }
+      </section>
     </main>
   </body>
 </html>

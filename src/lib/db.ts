@@ -31,9 +31,8 @@ export type { Assessment, Course };
 // boot of a fresh database; every later boot sees the table already has rows.
 const DEMO_COURSES: Array<Pick<Course, "code" | "name">> = [
   { code: "COMP4020", name: "Agentic Coding Studio" },
-  { code: "COMP3900", name: "Computer Science Project" },
   { code: "COMP2100", name: "Software Design Methodologies" },
-  { code: "MATH2405", name: "Introduction to Statistical Machine Learning" },
+  { code: "COMP6240", name: "Relational Databases" },
 ];
 
 if (db.select().from(courses).all().length === 0) {
