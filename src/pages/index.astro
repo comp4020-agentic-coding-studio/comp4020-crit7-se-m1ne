@@ -1,8 +1,9 @@
 ---
-import { listMessages } from "../lib/db";
+import { listAssessments, listCourses } from "../lib/db";
 import "../styles.css";
 
-const messages = listMessages();
+const courses = listCourses();
+const assessments = listAssessments();
 ---
 
 <!doctype html>
@@ -10,44 +11,72 @@ const messages = listMessages();
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>COMP4020 prototype</title>
+    <title>ANU assessment planner</title>
   </head>
   <body>
     <nav aria-label="site">
-      <a href="/">Guestbook</a>
+      <a href="/">Planner</a>
       <a href="/readme/">About</a>
     </nav>
     <main>
-      <h1>Guestbook</h1>
+      <h1>Assessment planner</h1>
       <p>
-        A minimal full-stack starter: messages live in SQLite on the machine's
-        volume (state survives a reload and a redeploy), and new messages
-        appear in every open tab over a server-sent-events stream — open this
-        page twice and sign it in one. Replace all of this with your own
-        prototype.
+        One place to keep track of the assessments spread across your ANU
+        course pages. Add one below; it's saved to SQLite and stays there
+        across a reload.
       </p>
-      <form method="post" action="/api/messages">
-        <label for="body">Leave a message</label>
-        <input id="body" name="body" required maxlength="500" />
-        <button>Sign</button>
+
+      <h2>Add an assessment</h2>
+      <form method="post" action="/api/assessments">
+        <label for="course">Course</label>
+        <select id="course" name="courseId" required>
+          {courses.map((course) => (
+            <option value={course.id}>
+              {course.code} — {course.name}
+            </option>
+          ))}
+        </select>
+
+        <label for="title">Title</label>
+        <input id="title" name="title" required maxlength="200" />
+
+        <label for="dueDate">Due date</label>
+        <input id="dueDate" name="dueDate" type="date" required />
+
+        <label for="weight">Weight (%)</label>
+        <input id="weight" name="weight" type="number" min="0" max="100" step="0.1" required />
+
+        <button>Add assessment</button>
       </form>
-      <ul id="messages">
-        {messages.map((message) => <li>{message.body}</li>)}
-      </ul>
+
+      <h2>Upcoming assessments</h2>
+      {
+        assessments.length === 0 ? (
+          <p>No assessments yet.</p>
+        ) : (
+          <table>
+            <caption>Ordered by due date</caption>
+            <thead>
+              <tr>
+                <th scope="col">Course</th>
+                <th scope="col">Assessment</th>
+                <th scope="col">Due date</th>
+                <th scope="col">Weight</th>
+              </tr>
+            </thead>
+            <tbody>
+              {assessments.map((assessment) => (
+                <tr>
+                  <td>{assessment.courseCode}</td>
+                  <td>{assessment.title}</td>
+                  <td>{assessment.dueDate}</td>
+                  <td>{assessment.weight}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )
+      }
     </main>
-    <script>
-      // The live half of the demo: subscribe to the SSE stream and prepend
-      // messages as they arrive. The form itself needs none of this — its
-      // POST + redirect re-renders the submitting tab from SQLite; this
-      // stream is how every other tab finds out.
-      const list = document.querySelector("#messages");
-      const source = new EventSource("/api/events");
-      source.addEventListener("message", (event) => {
-        const message = JSON.parse(event.data);
-        const item = document.createElement("li");
-        item.textContent = message.body;
-        list?.prepend(item);
-      });
-    </script>
   </body>
 </html>

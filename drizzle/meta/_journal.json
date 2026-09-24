@@ -15,6 +15,13 @@
       "when": 1790218322942,
       "tag": "0001_huge_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1790219256867,
+      "tag": "0002_unknown_aaron_stack",
+      "breakpoints": true
     }
   ]
 }
