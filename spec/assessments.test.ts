@@ -96,4 +96,49 @@ describe("assessment planner", () => {
     const card = html.slice(html.indexOf(noWeightTitle));
     expect(card).not.toContain("<dt>Weight</dt>");
   });
+
+  it("deletes an assessment and it stays gone after a fresh page load", async () => {
+    const deleteTitle = `spec probe delete ${process.hrtime.bigint()}`;
+    const createRes = await post(
+      "/api/assessments",
+      new URLSearchParams({ courseCode, courseName, title: deleteTitle, dueDate: "2026-11-20", weight: "20" }),
+    );
+    expect(createRes.status).toBe(303);
+
+    const htmlBefore = await (await fetch(baseUrl)).text();
+    expect(htmlBefore).toContain(deleteTitle);
+
+    // The delete form's hidden id input sits inside the same <li> as the
+    // title, so the first "name=id value=..." after it is this assessment's.
+    const afterTitle = htmlBefore.slice(htmlBefore.indexOf(deleteTitle));
+    const idMatch = afterTitle.match(/name="id" value="(\d+)"/);
+    expect(idMatch).not.toBeNull();
+
+    const deleteRes = await post("/api/assessments/delete", new URLSearchParams({ id: idMatch![1] }));
+    expect(deleteRes.status).toBe(303);
+    expect(deleteRes.headers.get("location")).toBe("/");
+
+    const htmlAfter = await (await fetch(baseUrl)).text();
+    expect(htmlAfter).not.toContain(deleteTitle);
+  });
+
+  it("renders a Today separator with past assessments above it and upcoming ones below", async () => {
+    const pastTitle = `spec probe past ${process.hrtime.bigint()}`;
+    const futureTitle = `spec probe future ${process.hrtime.bigint()}`;
+
+    await post(
+      "/api/assessments",
+      new URLSearchParams({ courseCode, courseName, title: pastTitle, dueDate: "2000-01-01", weight: "5" }),
+    );
+    await post(
+      "/api/assessments",
+      new URLSearchParams({ courseCode, courseName, title: futureTitle, dueDate: "2099-01-01", weight: "5" }),
+    );
+
+    const html = await (await fetch(baseUrl)).text();
+    const separatorIndex = html.indexOf("Today — ");
+    expect(separatorIndex).toBeGreaterThan(-1);
+    expect(html.indexOf(pastTitle)).toBeLessThan(separatorIndex);
+    expect(html.indexOf(futureTitle)).toBeGreaterThan(separatorIndex);
+  });
 });

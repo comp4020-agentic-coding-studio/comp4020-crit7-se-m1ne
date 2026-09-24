@@ -1,9 +1,16 @@
 ---
 import { listAssessments } from "../lib/db";
+import { todayISODate } from "../lib/date";
 import courseCatalogue from "../data/courses.json";
 import "../styles.css";
 
 const assessments = listAssessments();
+const today = todayISODate();
+// dueDate is stored as an ISO YYYY-MM-DD string, so lexicographic comparison
+// matches chronological order. rawIndex is the first upcoming assessment;
+// -1 (nothing due today or later) becomes "after the last item" instead.
+const rawIndex = assessments.findIndex((assessment) => assessment.dueDate >= today);
+const todaySeparatorIndex = rawIndex === -1 ? assessments.length : rawIndex;
 ---
 
 <!doctype html>
@@ -121,26 +128,59 @@ const assessments = listAssessments();
             <p class="empty-state">Nothing here yet — add your first assessment above.</p>
           ) : (
             <ul class="assessment-list">
-              {assessments.map((assessment) => (
-                <li class="assessment-card">
-                  <div class="assessment-card__main">
-                    <p class="assessment-card__course">{assessment.courseCode}</p>
-                    <h3 class="assessment-card__title">{assessment.title}</h3>
-                  </div>
-                  <dl class="assessment-card__meta">
-                    <div>
-                      <dt>Due</dt>
-                      <dd><time datetime={assessment.dueDate}>{assessment.dueDate}</time></dd>
+              {assessments.map((assessment, index) => (
+                <>
+                  {index === todaySeparatorIndex && (
+                    <li class="assessment-separator">
+                      <span class="assessment-separator__label">Today — {today}</span>
+                    </li>
+                  )}
+                  <li class="assessment-card">
+                    <div class="assessment-card__main">
+                      <p class="assessment-card__course">{assessment.courseCode}</p>
+                      <h3 class="assessment-card__title">{assessment.title}</h3>
                     </div>
-                    {assessment.weight !== null && (
-                      <div>
-                        <dt>Weight</dt>
-                        <dd>{assessment.weight}%</dd>
-                      </div>
-                    )}
-                  </dl>
-                </li>
+                    <div class="assessment-card__side">
+                      <dl class="assessment-card__meta">
+                        <div>
+                          <dt>Due</dt>
+                          <dd><time datetime={assessment.dueDate}>{assessment.dueDate}</time></dd>
+                        </div>
+                        {assessment.weight !== null && (
+                          <div>
+                            <dt>Weight</dt>
+                            <dd>{assessment.weight}%</dd>
+                          </div>
+                        )}
+                      </dl>
+                      <form method="post" action="/api/assessments/delete" class="assessment-card__delete">
+                        <input type="hidden" name="id" value={assessment.id} />
+                        <button
+                          type="submit"
+                          class="assessment-card__delete-btn"
+                          aria-label={`Delete assessment: ${assessment.title}`}
+                        >
+                          <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
+                            <path
+                              d="M4 7h16M9 7V4a1 1 0 011-1h4a1 1 0 011 1v3m-8 0l1 13a1 1 0 001 1h6a1 1 0 001-1l1-13"
+                              fill="none"
+                              stroke="currentColor"
+                              stroke-width="1.8"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            ></path>
+                          </svg>
+                        </button>
+                      </form>
+                    </div>
+                  </li>
+                </>
               ))}
+              {todaySeparatorIndex === assessments.length && (
+                <li class="assessment-separator">
+                  <span class="assessment-separator__label">Today — {today}</span>
+                </li>
+              )}
             </ul>
           )
         }

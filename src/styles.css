@@ -339,3 +339,62 @@ select:focus-visible {
   font-weight: 600;
   white-space: nowrap;
 }
+
+.assessment-card__side {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.assessment-card__delete {
+  margin: 0;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--border);
+}
+
+.assessment-card__delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  padding: 0.35rem;
+  border-radius: 6px;
+  line-height: 0;
+  cursor: pointer;
+}
+
+.assessment-card__delete-btn:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+
+.assessment-card__delete-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.assessment-separator {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0.25rem 0;
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.assessment-separator::before,
+.assessment-separator::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+.assessment-separator__label {
+  white-space: nowrap;
+}

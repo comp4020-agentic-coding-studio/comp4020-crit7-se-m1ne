@@ -62,3 +62,7 @@ export function addAssessment(input: {
 }): Assessment {
   return db.insert(assessments).values(input).returning().get();
 }
+
+export function deleteAssessment(id: number): void {
+  db.delete(assessments).where(eq(assessments.id, id)).run();
+}
