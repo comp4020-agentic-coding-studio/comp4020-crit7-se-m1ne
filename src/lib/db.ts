@@ -26,21 +26,13 @@ migrate(db, { migrationsFolder: "./drizzle" });
 
 export type { Assessment, Course };
 
-// A fixed set of courses so the planner has something to demonstrate against
-// without needing accounts or an ANU API integration. Seeded once, on first
-// boot of a fresh database; every later boot sees the table already has rows.
-const DEMO_COURSES: Array<Pick<Course, "code" | "name">> = [
-  { code: "COMP4020", name: "Agentic Coding Studio" },
-  { code: "COMP2100", name: "Software Design Methodologies" },
-  { code: "COMP6240", name: "Relational Databases" },
-];
-
-if (db.select().from(courses).all().length === 0) {
-  db.insert(courses).values(DEMO_COURSES).run();
-}
-
-export function listCourses(): Course[] {
-  return db.select().from(courses).orderBy(asc(courses.code)).all();
+// Courses are no longer pre-seeded: the picker on the form draws from the
+// static ANU catalogue (src/data/courses.json), and a course only gets a row
+// here the first time someone actually picks it — catalogue or custom.
+export function findOrCreateCourse(input: { code: string; name: string }): Course {
+  const existing = db.select().from(courses).where(eq(courses.code, input.code)).get();
+  if (existing) return existing;
+  return db.insert(courses).values(input).returning().get();
 }
 
 export type AssessmentWithCourse = Assessment & { courseCode: string; courseName: string };
@@ -66,7 +58,7 @@ export function addAssessment(input: {
   courseId: number;
   title: string;
   dueDate: string;
-  weight: number;
+  weight: number | null;
 }): Assessment {
   return db.insert(assessments).values(input).returning().get();
 }

@@ -21,7 +21,7 @@ export const assessments = sqliteTable("assessments", {
     .references(() => courses.id),
   title: text().notNull(),
   dueDate: text("due_date").notNull(),
-  weight: real().notNull(),
+  weight: real(),
 });
 
 export type Assessment = typeof assessments.$inferSelect;

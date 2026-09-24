@@ -1,8 +1,8 @@
 ---
-import { listAssessments, listCourses } from "../lib/db";
+import { listAssessments } from "../lib/db";
+import courseCatalogue from "../data/courses.json";
 import "../styles.css";
 
-const courses = listCourses();
 const assessments = listAssessments();
 ---
 
@@ -29,14 +29,70 @@ const assessments = listAssessments();
         <h2 id="add-heading">Add an assessment</h2>
         <form class="assessment-form" method="post" action="/api/assessments">
           <div class="field field--course">
-            <label for="course">Course</label>
-            <select id="course" name="courseId" required>
-              {courses.map((course) => (
-                <option value={course.id}>
-                  {course.code} — {course.name}
-                </option>
-              ))}
-            </select>
+            <div class="field__row">
+              <label for="courseSearch">Course</label>
+              <label class="field__toggle">
+                <input id="useCustomCourse" type="checkbox" />
+                Not listed? Enter manually
+              </label>
+            </div>
+
+            <div class="combobox">
+              <input
+                id="courseSearch"
+                class="combobox__input"
+                type="text"
+                role="combobox"
+                aria-expanded="false"
+                aria-autocomplete="list"
+                aria-controls="courseOptions"
+                autocomplete="off"
+                placeholder="Search by code or title…"
+                required
+              />
+              <button
+                type="button"
+                id="courseToggle"
+                class="combobox__toggle"
+                aria-label="Show course list"
+                aria-haspopup="listbox"
+                aria-expanded="false"
+                aria-controls="courseOptions"
+              >
+                <svg viewBox="0 0 16 16" width="10" height="10" aria-hidden="true" focusable="false">
+                  <path
+                    d="M2 5l6 6 6-6"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
+                </svg>
+              </button>
+              <ul id="courseOptions" class="combobox__list" role="listbox" aria-label="Matching courses" hidden>
+              </ul>
+            </div>
+
+            <div id="customCourseFields" class="field__custom" hidden>
+              <input
+                id="customCode"
+                type="text"
+                placeholder="Course code"
+                maxlength="50"
+                aria-label="Custom course code"
+              />
+              <input
+                id="customName"
+                type="text"
+                placeholder="Course title"
+                maxlength="200"
+                aria-label="Custom course title"
+              />
+            </div>
+
+            <input type="hidden" name="courseCode" id="courseCodeField" />
+            <input type="hidden" name="courseName" id="courseNameField" />
           </div>
 
           <div class="field field--title">
@@ -51,7 +107,7 @@ const assessments = listAssessments();
 
           <div class="field">
             <label for="weight">Weight (%)</label>
-            <input id="weight" name="weight" type="number" min="0" max="100" step="0.1" required />
+            <input id="weight" name="weight" type="number" min="0" max="100" step="0.1" />
           </div>
 
           <button type="submit" class="assessment-form__submit">Add assessment</button>
@@ -76,10 +132,12 @@ const assessments = listAssessments();
                       <dt>Due</dt>
                       <dd><time datetime={assessment.dueDate}>{assessment.dueDate}</time></dd>
                     </div>
-                    <div>
-                      <dt>Weight</dt>
-                      <dd>{assessment.weight}%</dd>
-                    </div>
+                    {assessment.weight !== null && (
+                      <div>
+                        <dt>Weight</dt>
+                        <dd>{assessment.weight}%</dd>
+                      </div>
+                    )}
                   </dl>
                 </li>
               ))}
@@ -88,5 +146,258 @@ const assessments = listAssessments();
         }
       </section>
     </main>
+
+    <script type="application/json" id="courseCatalogueData" is:inline set:html={JSON.stringify(courseCatalogue).replace(/</g, "\\u003c")}></script>
+
+    <script>
+      // The combobox and custom fields both just feed the two hidden inputs
+      // the form actually submits. A course only counts as "picked" once a
+      // result is selected — typing alone never populates the hidden fields,
+      // so a partial/abandoned search can't be submitted as a course.
+      type Course = { code: string; name: string };
+
+      const catalogueData = document.getElementById("courseCatalogueData") as HTMLScriptElement;
+      const catalogue: Course[] = JSON.parse(catalogueData.textContent || "[]");
+
+      const search = document.getElementById("courseSearch") as HTMLInputElement;
+      const courseToggle = document.getElementById("courseToggle") as HTMLButtonElement;
+      const list = document.getElementById("courseOptions") as HTMLUListElement;
+      const toggle = document.getElementById("useCustomCourse") as HTMLInputElement;
+      const customFields = document.getElementById("customCourseFields") as HTMLElement;
+      const customCode = document.getElementById("customCode") as HTMLInputElement;
+      const customName = document.getElementById("customName") as HTMLInputElement;
+      const codeField = document.getElementById("courseCodeField") as HTMLInputElement;
+      const nameField = document.getElementById("courseNameField") as HTMLInputElement;
+
+      const MAX_RESULTS = 8;
+      let results: Course[] = [];
+      let activeIndex = -1;
+      let selected: Course | null = null;
+
+      // Lower score = better match: exact code, then code/title prefix, then
+      // code/title substring. Keeps "COMP" from surfacing unrelated courses
+      // that merely contain the letters somewhere in a long title.
+      function matchScore(course: Course, q: string): number {
+        const code = course.code.toLowerCase();
+        const name = course.name.toLowerCase();
+        if (code === q) return 0;
+        if (code.startsWith(q)) return 1;
+        if (name.startsWith(q)) return 2;
+        if (code.includes(q)) return 3;
+        if (name.includes(q)) return 4;
+        return -1;
+      }
+
+      function findMatches(query: string): Course[] {
+        const q = query.trim().toLowerCase();
+        if (!q) return [];
+        return catalogue
+          .map((course) => ({ course, score: matchScore(course, q) }))
+          .filter(({ score }) => score >= 0)
+          .sort((a, b) => a.score - b.score || a.course.code.localeCompare(b.course.code))
+          .slice(0, MAX_RESULTS)
+          .map(({ course }) => course);
+      }
+
+      function optionId(index: number) {
+        return `course-option-${index}`;
+      }
+
+      function closeList() {
+        list.hidden = true;
+        list.innerHTML = "";
+        search.setAttribute("aria-expanded", "false");
+        courseToggle.setAttribute("aria-expanded", "false");
+        search.removeAttribute("aria-activedescendant");
+        results = [];
+        activeIndex = -1;
+      }
+
+      function updateActiveDescendant() {
+        if (activeIndex >= 0) {
+          search.setAttribute("aria-activedescendant", optionId(activeIndex));
+        } else {
+          search.removeAttribute("aria-activedescendant");
+        }
+        Array.from(list.children).forEach((child, index) => {
+          child.setAttribute("aria-selected", String(index === activeIndex));
+          child.classList.toggle("is-active", index === activeIndex);
+        });
+      }
+
+      function renderList() {
+        list.innerHTML = "";
+        if (results.length === 0) {
+          closeList();
+          return;
+        }
+        results.forEach((course, index) => {
+          const option = document.createElement("li");
+          option.id = optionId(index);
+          option.className = "combobox__option";
+          option.setAttribute("role", "option");
+          option.setAttribute("aria-selected", String(index === activeIndex));
+
+          const code = document.createElement("span");
+          code.className = "combobox__code";
+          code.textContent = course.code;
+
+          const name = document.createElement("span");
+          name.className = "combobox__name";
+          name.textContent = ` — ${course.name}`;
+
+          option.append(code, name);
+          option.addEventListener("mousedown", (event) => {
+            // mousedown (not click) fires before the input would blur, and
+            // preventDefault keeps focus in the input so blur never fires.
+            event.preventDefault();
+            selectCourse(course);
+          });
+          list.appendChild(option);
+        });
+        list.hidden = false;
+        search.setAttribute("aria-expanded", "true");
+        courseToggle.setAttribute("aria-expanded", "true");
+        updateActiveDescendant();
+      }
+
+      // Shown only via the dropdown arrow on an empty field — a non-selectable
+      // nudge rather than an arbitrary slice of 3,010 courses.
+      function renderHint() {
+        list.innerHTML = "";
+        const hint = document.createElement("li");
+        hint.className = "combobox__hint";
+        hint.setAttribute("role", "presentation");
+        hint.textContent = "Start typing to search courses";
+        list.appendChild(hint);
+        list.hidden = false;
+        search.setAttribute("aria-expanded", "true");
+        courseToggle.setAttribute("aria-expanded", "true");
+        search.removeAttribute("aria-activedescendant");
+      }
+
+      function selectCourse(course: Course) {
+        selected = course;
+        search.value = `${course.code} — ${course.name}`;
+        codeField.value = course.code;
+        nameField.value = course.name;
+        search.setCustomValidity("");
+        closeList();
+      }
+
+      function clearSelection() {
+        selected = null;
+        codeField.value = "";
+        nameField.value = "";
+      }
+
+      function updateValidity() {
+        if (toggle.checked) {
+          search.setCustomValidity("");
+          return;
+        }
+        search.setCustomValidity(
+          selected || !search.value ? "" : "Pick a course from the list, or use “enter manually”.",
+        );
+      }
+
+      search.addEventListener("input", () => {
+        clearSelection();
+        results = findMatches(search.value);
+        activeIndex = -1;
+        renderList();
+        updateValidity();
+      });
+
+      search.addEventListener("keydown", (event) => {
+        if (list.hidden) {
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            results = findMatches(search.value);
+            if (results.length > 0) {
+              activeIndex = 0;
+              renderList();
+            }
+          }
+          return;
+        }
+
+        switch (event.key) {
+          case "ArrowDown":
+            if (results.length === 0) break;
+            event.preventDefault();
+            activeIndex = (activeIndex + 1) % results.length;
+            updateActiveDescendant();
+            break;
+          case "ArrowUp":
+            if (results.length === 0) break;
+            event.preventDefault();
+            activeIndex = (activeIndex - 1 + results.length) % results.length;
+            updateActiveDescendant();
+            break;
+          case "Enter":
+            if (activeIndex >= 0) {
+              event.preventDefault();
+              selectCourse(results[activeIndex]);
+            }
+            break;
+          case "Escape":
+            closeList();
+            break;
+        }
+      });
+
+      search.addEventListener("blur", () => {
+        closeList();
+        updateValidity();
+      });
+
+      courseToggle.addEventListener("mousedown", (event) => {
+        // Same trick as option clicks: keep focus in the search input so
+        // its own blur handler doesn't close the list out from under us.
+        event.preventDefault();
+      });
+
+      courseToggle.addEventListener("click", () => {
+        if (!list.hidden) {
+          closeList();
+          return;
+        }
+        const query = search.value.trim();
+        activeIndex = -1;
+        if (query) {
+          results = findMatches(query);
+          renderList();
+        } else {
+          results = [];
+          renderHint();
+        }
+        search.focus();
+      });
+
+      function syncFromCustom() {
+        codeField.value = customCode.value.trim();
+        nameField.value = customName.value.trim();
+      }
+
+      toggle.addEventListener("change", () => {
+        const useCustom = toggle.checked;
+        search.hidden = useCustom;
+        courseToggle.hidden = useCustom;
+        search.required = !useCustom;
+        closeList();
+        search.setCustomValidity("");
+        customFields.hidden = !useCustom;
+        customCode.required = useCustom;
+        customName.required = useCustom;
+        if (useCustom) syncFromCustom();
+        else {
+          clearSelection();
+          updateValidity();
+        }
+      });
+
+      customCode.addEventListener("input", syncFromCustom);
+      customName.addEventListener("input", syncFromCustom);
+    </script>
   </body>
 </html>
