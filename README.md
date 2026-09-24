@@ -1,18 +1,27 @@
-# Your prototype
+# About the Assessment Planner
 
-<!-- TEMPLATE: this file is yours, and the deployed app publishes it in full at
-     /readme/ --- a visitor reads it before they touch the app, and so does the
-     marker. Replace everything in it, this comment included. -->
+Assessment information for different ANU courses can be spread across
+different course pages. This prototype explores a simpler way for a student
+to keep the assessments they need to complete in one place.
 
-What this is, in a paragraph: the thing, and what it's for.
+## What it does
 
-## What good looks like here
+- lets a student search the ANU course catalogue by course code or title
+- allows a course to be entered manually if it isn't listed
+- lets the student add an assessment with a title, due date, and optional
+  weight
+- stores assessments persistently
+- orders assessments by due date
+- separates past and upcoming assessments using the current date
+- allows assessments to be deleted
 
-Say what good means for this app: what you decided, what you read or looked at
-while deciding, and what you chose not to build. The rules that decision
-produced live in `CLAUDE.md` and the checks that protect it live in `spec/`;
-this is the argument they came from, so say which parts of good are enforced and
-which are judgement calls.
+## What it doesn't do
 
-Images go in `public/` and are linked relatively --- `![alt](public/before.png)`
---- which renders on GitHub and at `/readme/` alike.
+This is a focused student prototype, not a replacement for the whole ANU
+course or learning-management system. It intentionally leaves out:
+
+- authentication or accounts
+- notifications
+- grade calculation
+- collaboration
+- automatic Wattle or ANU system integration
